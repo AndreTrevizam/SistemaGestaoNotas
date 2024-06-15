@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, field_validator
-from typing import Dict
+from pydantic import BaseModel, field_validator, Field
+from typing import Dict, Optional
 import json
 import os
 from statistics import mean, median, stdev
@@ -13,7 +13,7 @@ alunos = []
 class Aluno(BaseModel):
     id: int
     nome: str
-    notas: Dict[str, float]
+    notas: Optional[Dict[str, float]] = Field(default_factory=dict)
 
     @field_validator("notas")
     def validar_notas(cls, v):
@@ -39,6 +39,13 @@ def carregar_dados():
 def adicionar_aluno(aluno: Aluno):
     alunos.append(aluno.__dict__)
     salvar_dados()
+
+# Função para remover alunos sem notas
+def remover_alunos_sem_notas():
+    global alunos
+    alunos = [aluno for aluno in alunos if aluno.get('notas')]
+    salvar_dados()
+    return {"mensagem": "Alunos sem notas removidos com sucesso"}
 
 # Função para recuperar notas de um aluno específico pelo ID
 def recuperar_notas_aluno(id: int):
@@ -102,3 +109,8 @@ def obter_estatisticas_disciplina(disciplina: str):
 @app.get("/disciplinas/{disciplina}/desempenho_baixo")
 def obter_alunos_desempenho_baixo(disciplina: str):
     return alunos_desempenho_baixo(disciplina)
+
+# Endpoint para remover alunos sem notas
+@app.delete("/alunos/sem_notas")
+def remover_alunos_sem_notas_endpoint():
+    return remover_alunos_sem_notas()
